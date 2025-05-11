@@ -1,0 +1,14 @@
+{
+  "name": "home-slice",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "data-service",
+    "api",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "build": "pnpm run --parallel build"
+  }
+}

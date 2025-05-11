@@ -1,0 +1,64 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Here is a suggested monorepo file layout using pnpm workspaces (or turbo, if you want more tooling down the line), with clear separation between the data service, API backend, and frontend:
+
+
+real-estate-insights/
+│
+├── package.json              # root: defines workspaces
+├── pnpm-workspace.yaml       # defines packages
+├── .gitignore
+├── README.md
+│
+├── data-service/             # Python 3 scripts for fetching + processing
+│   ├── fetch_redfin.py
+│   ├── fetch_fred.py
+│   ├── ingest.py
+│   ├── requirements.txt
+│   └── cron.yaml             # weekly schedule for ingestion
+│
+├── api/                      # FastAPI or Go backend for API endpoints
+│   ├── app/                  # FastAPI app structure
+│   │   ├── main.py
+│   │   ├── routes/
+│   │   ├── models/
+│   │   └── db/
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── frontend/                 # Vite + React + TanStack + Chart lib
+│   ├── src/
+│   │   ├── components/
+│   │   ├── routes/
+│   │   ├── lib/
+│   │   └── main.tsx
+│   ├── index.html
+│   ├── vite.config.ts
+│   └── package.json
+│
+├── database/                 # Postgres setup (optional)
+│   ├── schema.sql
+│   ├── seed.sql
+│   └── docker-compose.yml    # local DB for dev
+│
+└── scripts/                  # Utility scripts
+    ├── init_db.py
+    └── run_all.sh
+
+
+ Key Reasoning:
+Monorepo: Easier for local development (you can test ingestion, API, and frontend all together).
+
+Separate folders: Each concern is isolated so you can deploy separately if needed (e.g., data-service as a cron job, API on a web server, frontend on Vercel).
+
+Database folder: Useful if you want to run Postgres locally via Docker Compose for dev/testing.
+
+🛠 Dev Tooling Suggestions
+Use direnv or .env files for shared DB config.
+
+Consider Makefile or taskfile.yml to simplify local dev commands (e.g., make ingest, make dev, etc.).
+
+Start with Railway, Supabase, or Render for cheap + fast hosted infra.

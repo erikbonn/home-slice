@@ -1,0 +1,172 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Here's a step-by-step outline for building my real estate market insights application "home-slice" with an emphasis on speed, simplicity, and strong data foundations. This structure is designed to let you incrementally build and ship value:
+
+---
+
+### **1. Define MVP Scope**
+
+* **Goal**: A sleek webpage with a single performant chart that can filter weekly housing metrics by location.
+* **Users**: Real estate agents, homebuyers, casual market watchers.
+* **Initial Features**:
+
+  * Left-rail metric selector.
+  * Location filter (start with state → later expand to zip/city).
+  * Line chart showing time series of selected metric(s).
+  * Macro overlay toggle (e.g. interest rates).
+
+---
+
+### **2. Choose High-Quality Data Sources**
+
+#### 🏠 Housing Market Data (weekly or close)
+
+* **Redfin Data Center**:
+
+  * [https://www.redfin.com/news/data-center/](https://www.redfin.com/news/data-center/)
+  * CSVs with weekly updates: median prices, days on market, inventory, etc.
+  * Available by metro, county, state.
+* **Realtor.com Housing Market Data** (monthly, useful as backup).
+
+  * [https://www.realtor.com/research/data/](https://www.realtor.com/research/data/)
+* **Zillow Research (ZTRAX, backup)**:
+
+  * [https://www.zillow.com/research/data/](https://www.zillow.com/research/data/)
+  * Some datasets are updated weekly (e.g. price indices).
+* **Altos Research** (free trial, potential partner, backup).
+
+  * Good for active listings, price reductions, etc.
+* **FRED (Federal Reserve Economic Data)**:
+
+  * [https://fred.stlouisfed.org/](https://fred.stlouisfed.org/)
+  * Use for macro indicators (mortgage rates, inflation, etc.).
+
+---
+
+### **3. Backend Service Architecture**
+
+#### ⚙️ Data Ingestion (Python)
+
+* **Prefer Python 3** (for simplicity, pandas, FRED integration).
+
+  * Use `pandas` for parsing Redfin CSVs and transforming metrics.
+  * Use `requests` + `cron` or `APScheduler` for fetching new data weekly.
+* **Folder structure**:
+
+  ```
+  /data_ingestion_service/
+    - fetch_redfin.py
+    - fetch_fred.py
+    - process_and_store.py
+    - config.yaml
+    - cron.yaml
+  ```
+
+#### 💾 Data Storage
+
+* **PostgreSQL**:
+
+  * Schema example:
+
+    ```sql
+    metrics (id, name, type, frequency)
+    locations (id, type, name, state, zip)
+    metric_data (metric_id, location_id, date, value)
+    ```
+  * Normalize for future scalability (e.g., multiple sources per metric).
+* **Option**:
+
+  * Use Supabase (Postgres + API + Auth, great DX) to skip boilerplate backend initially.
+
+---
+
+### **4. Backend API Layer**
+
+* **FastAPI (Python)**:
+
+  * REST endpoints:
+
+    * `/metrics` → list available metrics
+    * `/locations` → autocomplete or location filter
+    * `/data?metric=...&location=...&range=...` → fetch time series
+
+* **Deploy**:
+
+  * Use Fly.io or Railway for simple deployments with cron capability.
+
+---
+
+### **5. Frontend Setup**
+
+#### ⚛️ Stack
+
+* **Framework**: Vite + React + TypeScript
+* **Router/Data**: TanStack Start (with TanStack Query)
+* **Component Lib**: Tailwind CSS or shadcn/ui for rapid UI buildout
+
+#### 📈 Charting Library Options
+
+* **Recommended**: `Recharts` (easy, customizable)
+
+  * Good DX, responsive, can render large datasets without major perf issues.
+* Alternatives (backups):
+
+  * `Nivo` (very pretty, uses D3)
+  * `React-Vis` or `Visx` (more control, but higher learning curve)
+* **Features**:
+
+  * Line chart with tooltip
+  * Toggleable overlays (e.g. mortgage rate)
+  * Legend for selected metrics
+
+---
+
+### **6. Product UX Decisions**
+
+* **Metric Selector (left rail)**:
+
+  * Use checkboxes or dropdown for available metrics.
+* **Location Selector**:
+
+  * Dropdown (start with state list)
+  * Consider integrating autocomplete w/ GeoDB later.
+* **Time Range Filter**:
+
+  * Preset ranges (YTD, 6mo, 1yr, 5yr), (Optional date datePicker later?)
+
+---
+
+### **7. Cron Job for Weekly Updates**
+
+* Use GitHub Actions, Railway Cron, or Fly.io Scheduled Jobs:
+
+  * Weekly job fetches data from Redfin/FRED
+  * Cleans and inserts to Postgres
+  * Versioned or idempotent (avoid double-ingestion)
+
+---
+
+### **8. Optional Enhancements (Post-MVP)**
+
+* Email reports for subscribers.
+* Zip code or city-level drill-down.
+* Trend alerts (“Inventory fell X% this week”).
+* User accounts and saved views.
+* SEO-friendly public chart pages.
+* Comparison mode: multiple locations on one chart.
+
+---
+
+### ✅ Recommended Build Order
+
+1. Fetch + transform + load Redfin CSV to Postgres (scripted).
+2. Set up cron job to run weekly and confirm new data appends.
+3. Build basic API using FastAPI (metric → location → time series).
+4. Stand up frontend with one chart using static test data.
+5. Hook up API → frontend via TanStack Query.
+6. Deploy and test a weekly workflow E2E.
+
+---
