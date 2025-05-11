@@ -1,0 +1,10 @@
+cron:
+  - description: "Weekly Redfin data ingestion"
+    url: /fetch_redfin
+    schedule: every wednesday 18:00
+    timezone: America/Los_Angeles
+
+  - description: "Weekly FRED data ingestion"
+    url: /fetch_fred
+    schedule: every thursday 18:00
+    timezone: America/Los_Angeles
