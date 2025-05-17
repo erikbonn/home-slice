@@ -45,4 +45,4 @@ yarn-error.log*
 Thumbs.db 
 
 # Cursor
-.cursorrules
+.cursor/rules
