@@ -1,23 +1,23 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables at the very top
+load_dotenv(os.path.join(os.path.dirname(__file__), '../.env'))
 
-# Database connection configuration
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'home_slice')
-DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-# Create database URL
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Get database URL from environment, preferring Railway's internal URL in production
+DATABASE_URL = os.getenv('DATABASE_URL')  # Railway's internal URL in production
+if not DATABASE_URL:
+    # Fall back to public connection string for local development
+    DATABASE_URL = os.getenv('PUBLIC_DATA_SERVICE_DB_CONNECTION_STRING')
+
+if not DATABASE_URL:
+    raise ValueError("Neither DATABASE_URL nor PUBLIC_DATA_SERVICE_DB_CONNECTION_STRING environment variables are set")
 
 # Create engine
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, connect_args={"sslmode": "require"})
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

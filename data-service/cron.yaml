@@ -1,10 +1,14 @@
-cron:
-  - description: "Weekly Redfin data ingestion"
-    url: /fetch_redfin
-    schedule: every wednesday 18:00
-    timezone: America/Los_Angeles
+crons:
+  - name: fetch-redfin-data
+    description: "Weekly Redfin data ingestion"
+    schedule: "0 18 * * 3" # Every Wednesday at 18:00
+    timezone: "America/Los_Angeles"
+    command: "python3 fetch_redfin.py"
+    timeout: 1800 # 30 minutes timeout
 
-  - description: "Weekly FRED data ingestion"
-    url: /fetch_fred
-    schedule: every thursday 18:00
-    timezone: America/Los_Angeles
+  - name: fetch-fred-data
+    description: "Weekly FRED data ingestion"
+    schedule: "0 18 * * 4" # Every Thursday at 18:00
+    timezone: "America/Los_Angeles"
+    command: "python3 fetch_fred.py"
+    timeout: 600 # 10 minutes timeout

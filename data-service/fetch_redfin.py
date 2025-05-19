@@ -39,10 +39,17 @@ class RedfinDataFetcher:
                 df = pd.read_csv(f, sep='\t')
             latest_tsv_date = pd.to_datetime(df['PERIOD_END']).max().date()
 
+            print(f"Latest DB date: {latest_db_date}")
+            print(f"Latest TSV date: {latest_tsv_date}")
+            
+            # Convert both to date objects for comparison
+            if isinstance(latest_db_date, datetime):
+                latest_db_date = latest_db_date.date()
+            
             return latest_tsv_date > latest_db_date
         except Exception as e:
             print(f"Error checking for new data: {e}")
-            return False
+            return True  # If there's an error checking, assume we need to update
 
     def fetch_and_store_state_data(self, db: Session, state_filter=None) -> bool:
         """
@@ -71,35 +78,49 @@ class RedfinDataFetcher:
                 df = df[df['STATE_CODE'].isin(state_filter)]
                 print(f"Filtered to {len(df)} rows for states: {state_filter}")
 
-            # Iterate and store
-            for _, row in df.iterrows():
-                # Get or create location
-                location = db.query(Location).filter_by(
-                    type='state',
-                    state_code=row['STATE_CODE']
-                ).first()
-                if not location:
-                    location = Location(
+            # Process in batches for better performance
+            batch_size = 1000
+            total_rows = len(df)
+            print(f"Starting to process {total_rows} rows...")
+
+            for i in range(0, total_rows, batch_size):
+                batch = df.iloc[i:i + batch_size]
+                print(f"Processing rows {i+1} to {min(i+batch_size, total_rows)} of {total_rows}...")
+                
+                # Process each row in the batch
+                for _, row in batch.iterrows():
+                    # Get or create location
+                    location = db.query(Location).filter_by(
                         type='state',
-                        name=row['STATE'],
                         state_code=row['STATE_CODE']
+                    ).first()
+                    if not location:
+                        location = Location(
+                            type='state',
+                            name=row['STATE'],
+                            state_code=row['STATE_CODE']
+                        )
+                        db.add(location)
+                        db.commit()
+                    
+                    # Store housing data
+                    housing_data = HousingData(
+                        location_id=location.id,
+                        date=pd.to_datetime(row['PERIOD_END']).date(),
+                        median_price=float(row['MEDIAN_SALE_PRICE']) if not pd.isna(row['MEDIAN_SALE_PRICE']) else None,
+                        median_price_sqft=float(row['MEDIAN_PPSF']) if not pd.isna(row['MEDIAN_PPSF']) else None,
+                        median_dom=int(row['MEDIAN_DOM']) if not pd.isna(row['MEDIAN_DOM']) else None,
+                        inventory=int(row['INVENTORY']) if not pd.isna(row['INVENTORY']) else None,
+                        new_listings=int(row['NEW_LISTINGS']) if not pd.isna(row['NEW_LISTINGS']) else None,
+                        price_reduced=int(row['PRICE_DROPS']) if not pd.isna(row['PRICE_DROPS']) else None
                     )
-                    db.add(location)
-                    db.commit()
-                # Store housing data
-                housing_data = HousingData(
-                    location_id=location.id,
-                    date=pd.to_datetime(row['PERIOD_END']).date(),
-                    median_price=float(row['MEDIAN_SALE_PRICE']) if not pd.isna(row['MEDIAN_SALE_PRICE']) else None,
-                    median_price_sqft=float(row['MEDIAN_PPSF']) if not pd.isna(row['MEDIAN_PPSF']) else None,
-                    median_dom=int(row['MEDIAN_DOM']) if not pd.isna(row['MEDIAN_DOM']) else None,
-                    inventory=int(row['INVENTORY']) if not pd.isna(row['INVENTORY']) else None,
-                    new_listings=int(row['NEW_LISTINGS']) if not pd.isna(row['NEW_LISTINGS']) else None,
-                    price_reduced=int(row['PRICE_DROPS']) if not pd.isna(row['PRICE_DROPS']) else None
-                )
-                db.add(housing_data)
-            db.commit()
-            print("Successfully stored Redfin state market data in DB.")
+                    db.add(housing_data)
+                
+                # Commit the batch
+                db.commit()
+                print(f"Committed batch {i//batch_size + 1} of {(total_rows + batch_size - 1)//batch_size}")
+
+            print("Successfully stored all Redfin state market data in DB.")
             return True
         except Exception as e:
             print(f"Error in fetch_and_store_state_data: {e}")

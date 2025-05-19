@@ -45,4 +45,7 @@ yarn-error.log*
 Thumbs.db 
 
 # Cursor
-.cursor/rules
+.cursor/
+.cursorrules
+.cursor/rules/
+.cursor/rules/*.mdc

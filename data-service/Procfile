@@ -1,0 +1,2 @@
+web: python fetch_fred.py
+worker: python fetch_redfin.py 
